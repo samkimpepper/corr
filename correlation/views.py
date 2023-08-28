@@ -7,9 +7,9 @@ from django.views.generic import View, TemplateView, ListView
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from rest_framework import viewsets, status
 from rest_framework.response import Response
+from rest_framework.exceptions import NotFound
 
 from django.utils import timezone 
-
 
 from .serializers import *
 from .models import Account, Category, CategoryItem
@@ -19,7 +19,6 @@ from .tasks import *
 class IndexView(generic.ListView):
     template_name = 'correlation/index.html'
     context_object_name = 'category_list'
-
 
     def get_queryset(self):
         return Category.objects.order_by('-created_date')
@@ -37,7 +36,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
     def create(self, request):
         data = {
-            "account": request.data["account"],
+            "account": request.user.pk,
             "name": request.data["name"],
         }
         serializer = self.serializer_class(data=data)
@@ -87,23 +86,56 @@ class CategoryItemListViewSet(viewsets.ModelViewSet):
         return CategoryItem.objects.filter(
             category=category
         ).order_by('created_date')
+
+class CategoryItemDataListViewSet(viewsets.ModelViewSet):
+    serializer_class = CategoryItemDataSerializer
+
+    def get_queryset(self):
+        category_item = self.kwargs['category_item_id']
+
+        return CategoryItemData.objects.filter(category_item=category_item).order_by('created_date')
     
 
 class CategoryItemDataViewSet(viewsets.ModelViewSet):
+    queryset = CategoryItemData.objects.all()
     serializer_class = CategoryItemDataSerializer
 
+    def get_queryset(self):
+        category_item = self.kwargs['category_item_id']
+
+        return CategoryItemData.objects.filter(
+            category_item=category_item
+        ).order_by('created_date')
+
     def create(self, request, *args, **kwargs):
-        data = request.data.get('categoryitemdata', {})
-        context = {'category_item': data.get('category_item')}
+        data = request.data
+        category_item = data.get('category_item')
 
         try:
-            context['category_item'] = CategoryItem.objects.get(id=cate)
-        return super().create(request, *args, **kwargs)
+            category_item = CategoryItem.objects.get(pk=category_item)
+        except:
+            raise NotFound("not found")
+        
+        data['category_item'] = category_item.pk
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
-class AccountViewSet(viewsets.ModelViewSet):
-    queryset = Account.objects.all()
-    serializer_class = AccountSerializer
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
+
+
+class StatisticsAnalazingView(View):
+    serializer_class = StatisticsAnlazingSerializer
+    def create(self, request):
+        data = request.data
+        result = test_correof_x_y(data.get('category_item1'), data.get('category_item2'), data.get('year'), data.get('month'))
+        serializer = self.serializer_class(data=data, context={'content': result, 'user': request.user})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     
 
 class TestPandasView(View):
