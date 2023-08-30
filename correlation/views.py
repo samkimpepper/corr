@@ -8,6 +8,9 @@ from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+
 
 from django.utils import timezone 
 
@@ -123,20 +126,42 @@ class CategoryItemDataViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
-
-
-class StatisticsAnalazingView(View):
+class StatisticsAnalazingView(APIView):
+    permission_classes = [IsAuthenticated]
     serializer_class = StatisticsAnlazingSerializer
-    def create(self, request):
+    def post(self, request):
         data = request.data
-        result = test_correof_x_y(data.get('category_item1'), data.get('category_item2'), data.get('year'), data.get('month'))
+
+        if not CategoryItem.objects.filter(id=data.get('category_item_x')).exists():
+            return JsonResponse({'msg': 'CATEGORY_ITEM_DOES_NOT_EXISTS'}, status=404)
+        x = CategoryItem.objects.get(id=data.get('category_item_x'))
+        if not CategoryItem.objects.filter(id=data.get('category_item_y')).exists():
+            return JsonResponse({'msg': 'CATEGORY_ITEM_DOES_NOT_EXISTS'}, status=404)
+        y = CategoryItem.objects.get(id=data.get('category_item_y'))
+
+        result = test_correof_x_y(x, y, data.get('target_year'), data.get('target_month'))
+
         serializer = self.serializer_class(data=data, context={'content': result, 'user': request.user})
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
+class StatisticsPredictView(APIView):
+    permission_classes = []
+    serializer_class = StatisticsPredictSerializer
+
+    def post(self, request):
+        data = request.data 
+        serializer = self.serializer_class(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        category_item_x = serializer.validated_data['category_item_x']
+        category_item_y = serializer.validated_data['category_item_y']
+        x_setting = serializer.validated_data['x_setting']
+
+        predicted_y = predict_y_for_x(category_item_x, category_item_y, x_setting, 2023, 8)
+        return JsonResponse({'predicted_y': predicted_y}, status=status.HTTP_201_CREATED)
 
 class TestPandasView(View):
     def get(self, request, categoryitem1_id, categoryitem2_id):

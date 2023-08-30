@@ -9,8 +9,9 @@ router.register('register', views.AccountViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-
-    path('login/', TokenObtainPairView.as_view()),
+    path('login/', views.LoginView.as_view()),
+    path('logout/', views.LogoutView.as_view()),
+    #path('login/', TokenObtainPairView.as_view()),
     path('refresh/', TokenVerifyView.as_view()),
     path('verify/', TokenRefreshView.as_view()),
 ]

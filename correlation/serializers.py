@@ -36,17 +36,17 @@ class CategoryItemDataSerializer(serializers.ModelSerializer):
         return category_item_data
     
 class StatisticsAnlazingSerializer(serializers.Serializer):
-    category_item1 = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
-    category_item2 = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
+    category_item_x = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
+    category_item_y = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
     
     class DateDigitEnum(Enum):
         MONTH = 'month'
         YEAR = 'year'
         ALL = 'all'
 
-    date_digit = serializers.ChoiceField(choices=[(tag.name, tag.value) for tag in DateDigitEnum])
-    year = serializers.IntegerField()
-    month = serializers.IntegerField(allow_null=True)
+    #date_digit = serializers.ChoiceField(choices=[(tag.name, tag.value) for tag in DateDigitEnum])
+    target_year = serializers.IntegerField()
+    target_month = serializers.IntegerField(allow_null=True)
 
     def validate_month(self, value):
         if value < 1 or value > 12:
@@ -60,20 +60,33 @@ class StatisticsAnlazingSerializer(serializers.Serializer):
         user = self.context.get('user')
         if user is None:
             raise ValueError("User가 없음")
-
-        statistics_result = StatisticsResult(
-            content=content,
-            category_item_x=validated_data['category_item1'],
-            category_item_y=validated_data['category_item2'],
+        
+        result, created = StatisticsResult.objects.get_or_create(
             account=user,
-            target_year=validated_data['year'],
-            target_month=validated_data['month']
+            category_item_x=validated_data['category_item_x'],
+            category_item_y=validated_data['category_item_y'],
+            target_year=validated_data['target_year'],
+            target_month=validated_data['target_month'],
         )
-        statistics_result.save()
-        return statistics_result
+
+        if not created:
+            result.content = content 
+            result.save()
+        return result 
     
+    def update(self, instance, validated_data):
+        content = self.context.get('content')
+        if content is None:
+            raise ValueError("Content Dosen't Exists")
+        
+        instance.content = content 
+        return instance 
 
 
 
+class StatisticsPredictSerializer(serializers.Serializer):
+    category_item_x = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
+    category_item_y = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
+    x_setting = serializers.IntegerField()
     
 
