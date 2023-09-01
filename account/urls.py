@@ -4,14 +4,20 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenVerifyView,
 
 from . import views 
 
+app_name = 'account'
+
 router = DefaultRouter()
-router.register('register', views.AccountViewSet)
+#router.register('register', views.AccountViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('login/', views.LoginView.as_view()),
-    path('logout/', views.LogoutView.as_view()),
-    #path('login/', TokenObtainPairView.as_view()),
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
     path('refresh/', TokenVerifyView.as_view()),
     path('verify/', TokenRefreshView.as_view()),
+
+    path('google/login/', views.google_login),
+    path('google/callback/', views.google_callback),
+    path('google/login/finish/', views.GoogleLogin.as_view()),
 ]

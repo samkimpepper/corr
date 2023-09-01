@@ -57,7 +57,7 @@ class CategoryItemViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
     def create(self, request):
-        data = request.data
+        data = request.data.copy()
 
         record_type = data.get('record_type')
         print('===========CategoryItem create()===========')
@@ -111,7 +111,7 @@ class CategoryItemDataViewSet(viewsets.ModelViewSet):
         ).order_by('created_date')
 
     def create(self, request, *args, **kwargs):
-        data = request.data
+        data = request.data.copy()
         category_item = data.get('category_item')
 
         try:
@@ -139,7 +139,7 @@ class StatisticsAnalazingView(APIView):
             return JsonResponse({'msg': 'CATEGORY_ITEM_DOES_NOT_EXISTS'}, status=404)
         y = CategoryItem.objects.get(id=data.get('category_item_y'))
 
-        result = test_correof_x_y(x, y, data.get('target_year'), data.get('target_month'))
+        result = test_correof_x_y(x, y, int(data.get('target_year')), int(data.get('target_month')))
 
         serializer = self.serializer_class(data=data, context={'content': result, 'user': request.user})
         serializer.is_valid(raise_exception=True)
@@ -161,7 +161,7 @@ class StatisticsPredictView(APIView):
         x_setting = serializer.validated_data['x_setting']
 
         predicted_y = predict_y_for_x(category_item_x, category_item_y, x_setting, 2023, 8)
-        return JsonResponse({'predicted_y': predicted_y}, status=status.HTTP_201_CREATED)
+        return JsonResponse({'predicted_y': predicted_y}, status=status.HTTP_200_OK)
 
 class TestPandasView(View):
     def get(self, request, categoryitem1_id, categoryitem2_id):

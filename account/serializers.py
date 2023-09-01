@@ -23,13 +23,3 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
-    check_password = serializers.CharField(write_only=True)
-
-    def validate(self, data):
-        password = data.get('password')
-        check_password = data.get('check_password')
-
-        if password != check_password:
-            raise serializers.ValidationError("비밀번호 확인 불일치")
-
-        return data

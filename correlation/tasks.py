@@ -12,9 +12,11 @@ import datetime
 def calculate_target_date(year, month):
     start_month = month
     end_month = month
+
     if month is None:
         start_month = 1
         end_month = 11
+        
     start_date = date(year, start_month, 1)
     if month == 12:
         end_date = date(year + 1, 1, 1)
@@ -25,8 +27,6 @@ def calculate_target_date(year, month):
 
 #한 달간의 데이터만 계산
 def test_correof_x_y(x, y, year, month):
-    #print(x.name)
-    #x_data_list = CategoryItemData.objects.order_by('recorded_date').filter(category_item=x)
     start_date, end_date = calculate_target_date(year, month)
     
     x_data_list = CategoryItemData.objects.filter(
@@ -164,7 +164,6 @@ def mean_x(x, year, month):
             x_value_table.append(0)
 
         date = date + datetime.timedelta(days=1)
-
     
     dataframe = {'date': date_table,
                  'x': x_value_table,
