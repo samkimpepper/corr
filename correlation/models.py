@@ -47,4 +47,11 @@ class StatisticsResult(models.Model):
     created_date = models.DateTimeField(default=timezone.now)   
 
     
-    
+class MonthlyMean(models.Model):
+    content = models.TextField(max_length=200, null=True)
+    mean = models.DecimalField(max_digits=5, decimal_places=2, null=True)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True)
+    category_item = models.ForeignKey(CategoryItem, on_delete=models.SET_NULL, null=True)
+    target_year = models.IntegerField(default=2023)
+    target_month = models.IntegerField(null=True)
+    created_date = models.DateTimeField(default=timezone.now)   

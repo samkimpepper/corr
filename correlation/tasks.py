@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import pandas as pd 
 from sklearn.linear_model import LinearRegression
 import numpy as np 
@@ -24,6 +26,49 @@ def calculate_target_date(year, month):
         end_date = date(year, end_month + 1, 1)
 
     return start_date, end_date
+
+def correof_x_y(x, y):
+    x_data_list = CategoryItemData.objects.filter(category_item=x).order_by('created_date')
+    y_data_list = CategoryItemData.objects.filter(category_item=y).order_by('created_date')
+
+    common_dates = set(x_data_list.values_list('created_date', flat=True)).intersection(
+        set(y_data_list.values_list('created_date', flat=True))
+    )
+
+    x_values = []
+    y_values = []
+    print(f"***common dates: {common_dates}")
+
+    for date in common_dates:
+        x_value = x_data_list.get(created_date=date).figure
+        y_value = y_data_list.get(created_date=date).figure 
+        x_values.append(x_value)
+        y_values.append(y_value)
+
+    dataframe = {
+        'x': x_values,
+        'y': y_values
+    }
+
+    df = pd.DataFrame(dataframe)
+
+    corr_coef, p_value = pearsonr(df['x'], df['y'])
+    
+    comment_corr = f"상관관계는 {corr_coef}입니다. "
+    comment_desc = ""
+
+    if p_value < 0.05:
+        if abs(corr_coef) >= 0.7:
+            comment_desc = "상당히 강한 상관관계가 있습니다"
+        elif abs(corr_coef) >= 0.5:
+            comment_desc = "어느 정도의 상관관계가 있습니다"
+        else:
+            comment_desc = "약한 상관관계가 있습니다. "
+    else:
+        comment_desc = "유의미하지 않습니다"
+
+    return  comment_corr + comment_desc
+        
 
 #한 달간의 데이터만 계산
 def test_correof_x_y(x, y, year, month):
@@ -178,6 +223,11 @@ def mean_x(x, year, month):
 
     return mean_month
 
+def compare_mean(curr_mean, prev_mean):
+    curr_mean = Decimal(str(curr_mean))
 
+    percent_change = ((curr_mean - prev_mean) / prev_mean) * 100
     
+    return percent_change
+        
     

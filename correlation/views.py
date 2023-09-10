@@ -128,7 +128,7 @@ class CategoryItemDataViewSet(viewsets.ModelViewSet):
 
 class StatisticsAnalazingView(APIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = StatisticsAnlazingSerializer
+    serializer_class = StatisticsCorreofSerializer
     def post(self, request):
         data = request.data
 
@@ -162,6 +162,40 @@ class StatisticsPredictView(APIView):
 
         predicted_y = predict_y_for_x(category_item_x, category_item_y, x_setting, 2023, 8)
         return JsonResponse({'predicted_y': predicted_y}, status=status.HTTP_200_OK)
+    
+class StatisticsMeanView(APIView):
+    permission_classes = []
+    serializer_class = MonthlyMeanSerializer
+
+    def post(self, request):
+        data = request.data 
+        
+        category_item = data.get('category_item')
+        target_year = int(data.get('target_year'))
+        target_month = int(data.get('target_month'))
+
+        mean = mean_x(category_item, int(target_year), int(target_month))
+
+        prev_mean = MonthlyMean.objects.filter(category_item=category_item, target_year=int(target_year), target_month=int(target_month)-1)
+        
+        content = ""
+        if prev_mean.exists():
+            prev_mean = prev_mean.get()
+            percent_change = compare_mean(mean, prev_mean.mean)
+            
+            if percent_change > 0:
+                content = f"{target_month-1}월에 비해 {percent_change} 만큼 증가했습니다."
+            elif percent_change < 0:
+                content = f"{target_month-1}월에 비해 {percent_change} 만큼 감소했습니다."
+            else:
+                content = "변화가 없습니다."
+            
+            
+        serializer = self.serializer_class(data=data, context={'user': request.user, 'mean': mean, 'content': content})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return JsonResponse({'mean': mean}, status=status.HTTP_201_CREATED)
 
 class TestPandasView(View):
     def get(self, request, categoryitem1_id, categoryitem2_id):

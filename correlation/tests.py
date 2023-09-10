@@ -10,6 +10,7 @@ import factory
 from faker import Faker
 
 from account.models import Account
+from .tasks import *
 
 # Create your tests here.
 
@@ -78,13 +79,22 @@ class CategoryItemFactory(factory.django.DjangoModelFactory):
     created_date = factory.Faker('date_this_year')
     record_type = factory.Faker('random_element', elements=['strength'])
 
-class CategoryItemDataFactory(factory.django.DjangoModelFactory):
+class CategoryItemDataXFactory(factory.django.DjangoModelFactory):
     class Meta:
         model = CategoryItemData
 
     category_item = factory.SubFactory(CategoryItemFactory)
     figure = factory.Faker('pyint', min_value=0, max_value=5)
-    created_date = factory.Sequence(lambda n: datetime.datetime.now() - timedelta(days=n))
+    created_date = factory.Iterator([datetime.datetime(2023, 1, 1) + timedelta(days=i) for i in range(100)])
+    created_time = factory.Faker('time')
+
+class CategoryItemDataYFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = CategoryItemData
+
+    category_item = factory.SubFactory(CategoryItemFactory)
+    figure = factory.Faker('pyint', min_value=0, max_value=5)
+    created_date = factory.Iterator([datetime.datetime(2023, 1, 1) + timedelta(days=i) for i in range(100)])
     created_time = factory.Faker('time')
 
 class TestFactory(APITestCase):
@@ -95,8 +105,8 @@ class TestFactory(APITestCase):
         self.category_item_y = CategoryItemFactory()
 
         for _ in range(30):
-            CategoryItemDataFactory(category_item=self.category_item_x)
-            CategoryItemDataFactory(category_item=self.category_item_y)
+            CategoryItemDataXFactory(category_item=self.category_item_x)
+            CategoryItemDataYFactory(category_item=self.category_item_y)
 
     def test_correof(self):
         url = reverse('correof')
@@ -112,7 +122,7 @@ class TestFactory(APITestCase):
             "category_item_x": self.category_item_x.id, 
             "category_item_y": self.category_item_y.id,
             "target_year": 2023,
-            "target_month": 8
+            "target_month": 1
         }
 
         res = self.client.post(url, data)
@@ -130,5 +140,55 @@ class TestFactory(APITestCase):
         res = self.client.post(url, data)
         print(res.content)
         self.assertEqual(200, res.status_code)
+
+    def test_new_correof(self):
+        result = correof_x_y(self.category_item_x, self.category_item_y)
+        print(result)
+
+
+        
+class StatisticsMeanViewTestCase(APITestCase):
+    url = reverse('mean')
+
+    def setUp(self):
+        self.user = Account.objects.create_user(username='testuser', password='password')
+        self.client.force_authenticate(user=self.user)       
+
+        self.category_item = CategoryItemFactory()
+
+        for _ in range(60):
+            CategoryItemDataXFactory(category_item=self.category_item)
+
+    def test_mean(self):
+        data = {
+            "category_item": self.category_item.id,
+            "target_year": 2023,
+            "target_month": 1,
+        }
+
+        res = self.client.post(self.url, data)
+        print(res.content)
+        self.assertEqual(201, res.status_code)
+        self.assertNotEqual(None, MonthlyMean.objects.get().mean)
+
+    def test_mean_if_prev_exists(self):
+        prev_data = {
+            "category_item": self.category_item.id,
+            "target_year": 2023,
+            "target_month": 1,
+        }
+        res = self.client.post(self.url, prev_data)
+
+        curr_data = {
+            "category_item": self.category_item.id,
+            "target_year": 2023,
+            "target_month": 2,
+        }
+        res = self.client.post(self.url, curr_data)
+        self.assertEqual(201, res.status_code)
+        print(res.content)
+
+
+
 
 

@@ -35,7 +35,7 @@ class CategoryItemDataSerializer(serializers.ModelSerializer):
         category_item_data = CategoryItemData.objects.create(**validated_data)
         return category_item_data
     
-class StatisticsAnlazingSerializer(serializers.Serializer):
+class StatisticsCorreofSerializer(serializers.Serializer):
     category_item_x = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
     category_item_y = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
     
@@ -83,10 +83,41 @@ class StatisticsAnlazingSerializer(serializers.Serializer):
         return instance 
 
 
-
 class StatisticsPredictSerializer(serializers.Serializer):
     category_item_x = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
     category_item_y = serializers.PrimaryKeyRelatedField(queryset=CategoryItem.objects.all())
     x_setting = serializers.IntegerField()
     
+class MonthlyMeanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MonthlyMean
+        fields = ('category_item', 'target_year', 'target_month')
+    
+    def validate_target_month(self, value):
+        if value < 1 or value > 12:
+            raise serializers.ValidationError("월은 1부터 12까지입니다.")
+        return value
+    
+    def create(self, validated_data):
+        user = self.context.get('user')
+        if user is None:
+            raise ValueError("User가 없음")
+        
+        mean = self.context.get('mean')
+        if mean is None:
+            raise ValueError("mean이 없음")
+        
+        content = self.context.get('content')
 
+        result, _ = MonthlyMean.objects.get_or_create(
+            category_item=validated_data['category_item'],
+            account=user,
+            target_year=validated_data['target_year'],
+            target_month=validated_data['target_month']
+        )
+
+        result.mean = mean
+        result.content = content
+        result.save()
+        
+        return result 

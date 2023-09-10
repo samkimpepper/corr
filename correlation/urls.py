@@ -17,6 +17,7 @@ urlpatterns = [
     path('category/data-list/<int:category_item_id>', views.CategoryItemDataListViewSet.as_view({'get': 'list'})),
     path('statistics/correof/', views.StatisticsAnalazingView.as_view(), name='correof'),
     path('statistics/predict/', views.StatisticsPredictView.as_view(), name='predict'),
+    path('statistics/mean/', views.StatisticsMeanView.as_view(), name='mean'),
     path('pandas/<int:categoryitem1_id>/<int:categoryitem2_id>/', views.TestPandasView.as_view(), name='test_pandas'),
     
 ]
